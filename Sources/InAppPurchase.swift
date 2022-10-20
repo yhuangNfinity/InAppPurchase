@@ -155,9 +155,8 @@ extension InAppPurchase: InAppPurchaseProvidable {
             handler?(.success(Set<String>(productIds)))
         }
     }
-
-    public func purchase(productIdentifier: String, handler: InAppPurchase.PurchaseHandler? = nil) {
-        // Fetch product from App Store
+    
+    public func purchase(productIdentifier: String, quantity: Int, handler: InAppPurchase.PurchaseHandler? = nil) {
         let requestId = UUID().uuidString
         productProvider.fetch(productIdentifiers: [productIdentifier], requestId: requestId) { [weak self] (result) in
             switch result {
@@ -168,7 +167,11 @@ extension InAppPurchase: InAppPurchaseProvidable {
                 }
 
                 // Add payment to App Store queue
-                let payment = SKPayment(product: product)
+                let payment = SKMutablePayment(product: product)
+                if quantity < 1 {
+                    payment.quantity = 1
+                }
+                payment.quantity = quantity
                 self?.paymentProvider.add(payment: payment, handler: { (_, result) in
                     switch result {
                     case .success(let transaction):
@@ -184,6 +187,10 @@ extension InAppPurchase: InAppPurchaseProvidable {
                 handler?(.failure(error))
             }
         }
+    }
+
+    public func purchase(productIdentifier: String, handler: InAppPurchase.PurchaseHandler? = nil) {
+        purchase(productIdentifier: productIdentifier, quantity: 1, handler: handler)
     }
 
     public func refreshReceipt(handler: InAppPurchase.ReceiptRefreshHandler?) {
